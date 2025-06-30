@@ -170,4 +170,37 @@ MIT License
 
 ## 🤝 貢献
 
-プルリクエストやイシューの報告を歓迎します。 
+プルリクエストやイシューの報告を歓迎します。
+
+## Phase2: WASMビルド & Next.js連携
+
+### 1. ビルド要件
+- Rust 1.70以上
+- wasm-pack
+- wasm-bindgen
+
+### 2. WASMビルド手順
+```sh
+cd rust-game-engine
+wasm-pack build --target web --release
+```
+- `pkg/`配下にWASMバイナリとJSラッパーが生成されます
+
+### 3. Next.jsへの組み込み例
+- `modern-tetris/public/wasm/`に`pkg/`の中身をコピー
+- Next.js側で`import init, { init_field, spawn_tetromino } from '../public/wasm/rust_game_engine';`
+- 初回のみ`await init()`で初期化
+
+### 4. 主要API（例）
+- `init_field(width, height)`
+- `spawn_tetromino()`
+- `move_tetromino(dir)`
+- `rotate_tetromino(dir)`
+- `hard_drop()`
+- `get_score()`
+- `get_rank()`
+- `get_achievements()`
+
+### 5. 開発メモ
+- API/データ構造は今後段階的に拡張
+- 詳細設計は`doc/files/phase2.md`参照 
