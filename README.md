@@ -197,23 +197,17 @@ npm run dev
 
 ### Installation
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/modern-tetris.git
-cd modern-tetris
-```
+# Clone the repository
+git clone https://github.com/mytakoyaki/project-tetris.git
+cd project-tetris/modern-tetris
 
-2. Install dependencies:
-```bash
+# Install dependencies
 npm install
-```
 
-3. Start the development server:
-```bash
+# Start development server
 npm run dev
 ```
-
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Available Scripts
 
@@ -221,20 +215,8 @@ npm run dev
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
-- `npm test` - Run tests
+- `npm run test` - Run tests
 - `npm run test:watch` - Run tests in watch mode
-- `npm run test:coverage` - Run tests with coverage
-
-## 🏗️ Architecture
-
-### Tech Stack
-
-- **Frontend Framework**: Next.js 15 with React 19
-- **State Management**: Redux Toolkit
-- **UI Library**: Material-UI (MUI)
-- **Styling**: Tailwind CSS
-- **Testing**: Jest with React Testing Library
-- **Type Safety**: TypeScript
 
 ### Project Structure
 
@@ -248,79 +230,45 @@ modern-tetris/
 │   │   ├── achievement/    # Achievement system
 │   │   └── ...
 │   ├── store/              # Redux store and slices
-│   ├── types/              # TypeScript type definitions
-│   └── styles/             # Global styles
+│   └── types/              # TypeScript type definitions
 ├── public/                 # Static assets
-└── tests/                  # Test files
+└── ...
 ```
 
-## 🚀 Deployment
+## 🏗️ Architecture
 
-### GitHub Pages
+### Hybrid Architecture (Phase 2)
 
-This project is configured for automatic deployment to GitHub Pages:
+This project is transitioning to a hybrid architecture:
 
-1. Push to the `main` branch
-2. GitHub Actions will automatically build and deploy
-3. The game will be available at: `https://mytakoyaki.github.io/modern-tetris/`
+- **Frontend**: Next.js + React + TypeScript
+- **Game Engine**: Rust + WebAssembly
+- **State Management**: Redux Toolkit
+- **UI Framework**: Material-UI
 
-### Manual Deployment
+### Rust Game Engine
 
-1. Build the project:
-```bash
-npm run build
-```
+The `rust-game-engine/` directory contains the Rust-based game logic:
 
-2. The static files will be generated in the `out/` directory
-3. Deploy the contents of the `out/` directory to your web server
+- **Core Game Logic**: Tetromino movement, collision detection
+- **Scoring System**: Points calculation, rank progression
+- **Achievement System**: Achievement tracking and validation
+- **WebAssembly Integration**: WASM compilation for browser execution
 
-## 🧪 Testing
+## 📚 Documentation
 
-Run the test suite:
-
-```bash
-npm test
-```
-
-Run tests with coverage:
-
-```bash
-npm run test:coverage
-```
-
-## 📊 統計・分析
-
-### プレイ統計
-- **総プレイ回数**: 累計ゲーム数
-- **総プレイ時間**: 累計プレイ時間
-- **最高スコア**: 過去最高記録
-- **平均スコア**: 統計データ
-
-### 進捗追跡
-- **段位進捗**: 現在段位と次の段位への進捗
-- **実績進捗**: 各実績の解除状況
-- **連続記録**: 連続プレイ日数
-
-## 📝 Recent Updates
-
-### Latest Features
-- ✅ Gravity system for block falling
-- ✅ Soft drop scoring fixes
-- ✅ Key operation guide UI
-- ✅ Clear bottom row feature
-- ✅ Comprehensive achievement system
-- ✅ 14-level Dan ranking system
-- ✅ Fever mode with 4x multiplier
-- ✅ SRS rotation system
-- ✅ Advanced spin detection
+- [Architecture Documentation](./doc/architecture/)
+- [ADR (Architecture Decision Records)](./doc/adr/)
+- [Migration Plan](./doc/loadmap/)
+- [Implementation Logs](./log/)
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ## 📄 License
 
@@ -328,10 +276,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Classic Tetris for the original game mechanics
-- Next.js team for the amazing framework
-- Material-UI team for the beautiful components
-- Redux team for state management
+- Tetris Company for the original Tetris game
+- Modern Tetris community for technical specifications
+- Next.js and React teams for the excellent frameworks
 
 ## 📞 Support
 
