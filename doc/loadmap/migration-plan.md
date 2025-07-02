@@ -1,191 +1,394 @@
-# 🔄 ハイブリッド構成移行計画
+# 🔄 ClaudeTetris マイグレーション計画
 
 ## 📋 **作業全体の流れ**
 
 ### **Phase 1: 基盤構築（完了済み）**
+- ✅ **Next.js 15 + React 19 セットアップ**
+- ✅ **Material-UI + TypeScript 統合**
+- ✅ **Redux Toolkit 状態管理**
+- ✅ **基本的なゲーム機能実装**
+
+### **Phase 2: Rust + WASM統合（完了済み）**
 - ✅ **rust-game-engineプロジェクト作成**
 - ✅ **WebAssembly対応設定**
-- ✅ **基本的なゲームエンジン構造**
-- ✅ **実績システム基盤**
+- ✅ **SRS回転システム実装**
+- ✅ **スピン検出システム実装**
+- ✅ **WASM統合完了**
 
-### **Phase 2: 既存コード移行（進行中）**
-- 🔄 **TypeScript → Rust 移行**
-- ⏳ **WebAssembly統合**
-- ⏳ **Redux統合修正**
+### **Phase 3: ゲーム機能拡張（完了済み）**
+- ✅ **フィーバーモード実装**
+- ✅ **実績システム実装**
+- ✅ **ポイント交換システム**
+- ✅ **エフェクトシステム**
 
-### **Phase 3: 統合・テスト（予定）**
-- ⏳ **Next.js統合**
+### **Phase 4: フルスタック機能実装（進行中）**
+- ✅ **Next.js API Routes実装**
+- ✅ **JWT認証システム**
+- ✅ **型安全なAPI通信**
+- 🔄 **データベース統合（Phase 4B）**
+- ⏳ **Clerk認証移行（Phase 5）**
+
+### **Phase 5: 認証・UI改善（予定）**
+- ⏳ **Clerk認証システム導入**
+- ⏳ **SNSログイン統合**
+- ⏳ **認証UI改善**
+- ⏳ **段階的JWT移行**
+
+### **Phase 6: リアルタイム機能（予定）**
+- ⏳ **Socket.io統合**
+- ⏳ **オンラインマルチプレイヤー**
+- ⏳ **マッチングシステム**
+- ⏳ **チャット機能**
+
+### **Phase 7: 高度な機能（予定）**
+- ⏳ **リプレイシステム**
+- ⏳ **トーナメント機能**
+- ⏳ **モバイル対応**
 - ⏳ **パフォーマンス最適化**
-- ⏳ **エラーハンドリング**
-
-### **Phase 4: デプロイ・運用（予定）**
-- ⏳ **GitHub Pagesデプロイ**
-- ⏳ **継続的改善**
 
 ---
 
 ## 🎯 **詳細移行計画**
 
-### **Phase 2A: ゲームロジック移行**
+### **Phase 4B: データベース統合（現在進行中）**
 
-#### **Step 1: テトロミノシステム**
-```typescript
-// 移行元: modern-tetris/src/features/game/utils/tetromino.ts
-// 移行先: rust-game-engine/src/game/tetromino.rs
+#### **Step 1: Prisma設定・スキーマ定義**
+```bash
+# 依存関係インストール
+npm install @prisma/client
+npm install -D prisma
 
-// 実装内容:
-// - テトロミノ形状定義
-// - 回転ロジック
-// - 色情報管理
+# Prisma初期化
+npx prisma init
+
+# スキーマ定義
+# prisma/schema.prisma
 ```
 
-#### **Step 2: 衝突検出システム**
-```typescript
-// 移行元: modern-tetris/src/features/game/utils/collision.ts
-// 移行先: rust-game-engine/src/game/collision.rs
+#### **Step 2: ローカル開発環境構築**
+```bash
+# Docker Compose設定
+# docker-compose.yml
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: tetris_dev
+      POSTGRES_USER: tetris_user
+      POSTGRES_PASSWORD: tetris_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
-// 実装内容:
-// - 境界チェック
-// - ブロック衝突判定
-// - 重複検出
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
 ```
 
-#### **Step 3: SRSシステム**
+#### **Step 3: API統合**
 ```typescript
-// 移行元: modern-tetris/src/features/game/utils/srs.ts
-// 移行先: rust-game-engine/src/game/srs.rs
+// lib/prisma.ts
+import { PrismaClient } from '../generated/prisma';
 
-// 実装内容:
-// - キックテーブル
-// - 回転判定
-// - 壁キック処理
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 ```
 
-#### **Step 4: スコアリングシステム**
+#### **Step 4: 既存API Routes更新**
 ```typescript
-// 移行元: modern-tetris/src/features/game/utils/pointsSystem.ts
-// 移行先: rust-game-engine/src/game/scoring.rs
+// app/api/scores/route.ts
+import { prisma } from '@/lib/prisma';
 
-// 実装内容:
-// - ポイント計算
-// - コンボシステム
-// - レベル計算
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    const gameMode = searchParams.get('gameMode');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const offset = parseInt(searchParams.get('offset') || '0');
+
+    const where = {
+      ...(userId && { userId }),
+      ...(gameMode && { gameMode }),
+    };
+
+    const [scores, total] = await Promise.all([
+      prisma.score.findMany({
+        where,
+        orderBy: { score: 'desc' },
+        take: limit,
+        skip: offset,
+        include: {
+          user: {
+            select: { username: true }
+          }
+        }
+      }),
+      prisma.score.count({ where })
+    ]);
+
+    return NextResponse.json({
+      scores,
+      total,
+      hasMore: offset + limit < total
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to fetch scores' },
+      { status: 500 }
+    );
+  }
+}
 ```
 
-#### **Step 5: T-Spin検出**
-```typescript
-// 移行元: modern-tetris/src/features/game/utils/spinDetection.ts
-// 移行先: rust-game-engine/src/game/spin_detection.rs
+### **Phase 4C: RTK Query統合**
 
-// 実装内容:
-// - T-Spin判定
-// - Mini T-Spin判定
-// - スピン条件チェック
+#### **Step 1: RTK Query設定**
+```typescript
+// store/api.ts
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+
+export const api = createApi({
+  reducerPath: 'api',
+  baseQuery: fetchBaseQuery({ 
+    baseUrl: '/api',
+    credentials: 'include',
+  }),
+  tagTypes: ['User', 'Score', 'Achievement', 'Ranking'],
+  endpoints: (builder) => ({
+    getScores: builder.query({
+      query: (params) => ({
+        url: '/scores',
+        params,
+      }),
+      providesTags: ['Score'],
+    }),
+    submitScore: builder.mutation({
+      query: (score) => ({
+        url: '/scores',
+        method: 'POST',
+        body: score,
+      }),
+      invalidatesTags: ['Score', 'Ranking'],
+    }),
+  }),
+});
 ```
 
-### **Phase 2B: 実績システム移行**
-
-#### **Step 1: 実績データ移行**
+#### **Step 2: ストア統合**
 ```typescript
-// 移行元: modern-tetris/src/store/slices/fullAchievements.ts
-// 移行先: rust-game-engine/src/achievement/data.rs
+// store/store.ts
+import { configureStore } from '@reduxjs/toolkit';
+import { setupListeners } from '@reduxjs/toolkit/query';
+import { api } from './api';
 
-// 実装内容:
-// - 255個の実績定義
-// - カテゴリ分類
-// - 条件設定
+export const store = configureStore({
+  reducer: {
+    [api.reducerPath]: api.reducer,
+    game: gameReducer,
+    user: userReducer,
+    score: scoreReducer,
+    achievement: achievementReducer,
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(api.middleware),
+});
+
+setupListeners(store.dispatch);
 ```
 
-#### **Step 2: 実績管理ロジック**
-```typescript
-// 移行元: modern-tetris/src/store/slices/achievementSlice.ts
-// 移行先: rust-game-engine/src/achievement/manager.rs
+### **Phase 4D: 本番環境準備**
 
-// 実装内容:
-// - 実績判定ロジック
-// - 進捗追跡
-// - 解除処理
+#### **Step 1: AWS RDS設定**
+- PostgreSQLインスタンス作成
+- セキュリティグループ設定
+- バックアップ設定
+
+#### **Step 2: Upstash Redis設定**
+- Redisインスタンス作成
+- 接続設定
+- 監視設定
+
+#### **Step 3: 環境変数管理**
+```bash
+# .env.local
+DATABASE_URL="postgresql://username:password@localhost:5432/tetris_dev"
+REDIS_URL="redis://localhost:6379"
+
+# .env.production
+DATABASE_URL="postgresql://username:password@aws-rds-endpoint:5432/tetris_prod"
+REDIS_URL="redis://upstash-redis-endpoint:6379"
 ```
 
-### **Phase 2C: WebAssembly統合**
+---
 
-#### **Step 1: APIラッパー作成**
-```typescript
-// 新規作成: modern-tetris/src/wasm/game_engine.ts
-// 新規作成: modern-tetris/src/wasm/achievement_manager.ts
+## 🎯 **技術スタック概要**
 
-// 実装内容:
-// - Rust関数のJavaScriptラッパー
-// - 型定義
-// - エラーハンドリング
-```
+### **フロントエンド**
+- **フレームワーク**: Next.js 15 (App Router)
+- **UI**: React 19 + Material-UI (MUI)
+- **状態管理**: Redux Toolkit + RTK Query
+- **言語**: TypeScript
+- **スタイリング**: Tailwind CSS + Emotion
 
-#### **Step 2: Redux統合修正**
-```typescript
-// 修正: modern-tetris/src/store/slices/gameSlice.ts
-// 修正: modern-tetris/src/store/slices/achievementSlice.ts
+### **バックエンド**
+- **API**: Next.js API Routes
+- **ORM**: Prisma
+- **データベース**: PostgreSQL (AWS RDS)
+- **キャッシュ**: Redis (Upstash)
+- **認証**: Clerk (Phase 5)
+- **リアルタイム通信**: Socket.io (Phase 6)
 
-// 修正内容:
-// - Rust API呼び出し
-// - 状態同期
-// - エラー処理
-```
+### **ゲームエンジン**
+- **言語**: Rust
+- **実行環境**: WebAssembly (WASM)
+- **機能**: SRS回転システム、スピン検出、衝突判定
 
-#### **Step 3: Next.js設定修正**
-```typescript
-// 修正: modern-tetris/next.config.ts
-
-// 修正内容:
-// - WebAssembly対応
-// - ビルド設定
-// - アセット最適化
-```
+### **インフラ・デプロイ**
+- **ホスティング**: Vercel
+- **データベース**: AWS RDS
+- **キャッシュ**: Upstash Redis
+- **認証**: Clerk
+- **CI/CD**: GitHub Actions
 
 ---
 
 ## 📊 **移行進捗管理**
 
 ### **完了済み（✅）**
+- [x] Next.js 15 + React 19 セットアップ
+- [x] Material-UI + TypeScript 統合
+- [x] Redux Toolkit 状態管理
+- [x] 基本的なゲーム機能実装
 - [x] rust-game-engineプロジェクト作成
-- [x] 基本的なゲームエンジン構造
 - [x] WebAssembly対応設定
-- [x] 実績システム基盤
-- [x] ビルドスクリプト作成
+- [x] SRS回転システム実装
+- [x] スピン検出システム実装
+- [x] WASM統合完了
+- [x] フィーバーモード実装
+- [x] 実績システム実装
+- [x] ポイント交換システム
+- [x] エフェクトシステム
+- [x] Next.js API Routes実装
+- [x] JWT認証システム
+- [x] 型安全なAPI通信
 
 ### **進行中（🔄）**
-- [ ] テトロミノシステム移行
-- [ ] 衝突検出システム移行
-- [ ] SRSシステム移行
-- [ ] スコアリングシステム移行
+- [ ] Prisma設定・スキーマ定義
+- [ ] ローカル開発環境構築（Docker）
+- [ ] API統合（データベース）
+- [ ] RTK Query統合
 
 ### **未着手（⏳）**
-- [ ] T-Spin検出移行
-- [ ] 実績データ移行
-- [ ] 実績管理ロジック移行
-- [ ] WebAssembly APIラッパー作成
-- [ ] Redux統合修正
-- [ ] Next.js設定修正
-- [ ] 統合テスト
+- [ ] 本番環境準備（AWS RDS + Upstash Redis）
+- [ ] Clerk認証システム導入
+- [ ] SNSログイン統合
+- [ ] Socket.io統合
+- [ ] オンラインマルチプレイヤー機能
+- [ ] マッチングシステム
+- [ ] チャット機能
+- [ ] リプレイシステム
+- [ ] トーナメント機能
+- [ ] モバイル対応
 - [ ] パフォーマンス最適化
-- [ ] エラーハンドリング実装
+
+---
+
+## 🚀 **次のステップ**
+
+### **Phase 4B: データベース統合（現在進行中）**
+1. **Prisma設定・スキーマ定義**
+   - Prisma初期化
+   - データベーススキーマ設計
+   - マイグレーション作成
+
+2. **ローカル開発環境構築**
+   - Docker Compose設定
+   - PostgreSQL + Redis起動
+   - 接続確認
+
+3. **API統合**
+   - 既存API Routes更新
+   - データベース接続
+   - エラーハンドリング
+
+4. **RTK Query統合**
+   - API定義作成
+   - キャッシュ戦略設定
+   - フロントエンド統合
+
+### **Phase 5: Clerk認証移行（予定）**
+1. **Clerkプロジェクト設定**
+2. **認証UIコンポーネント実装**
+3. **SNSログイン統合**
+4. **段階的JWT移行**
+
+### **Phase 6: リアルタイム機能（予定）**
+1. **Socket.io統合**
+2. **ゲームルーム機能**
+3. **マッチングシステム**
+4. **チャット機能**
 
 ---
 
 ## 🛠️ **開発環境セットアップ**
 
-### **Rust環境**
+### **前提条件**
 ```bash
-# Rust インストール
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# Node.js 20以上
+node --version
 
-# wasm-pack インストール
-cargo install wasm-pack
+# Docker & Docker Compose
+docker --version
+docker-compose --version
 
-# プロジェクトディレクトリ移動
-cd rust-game-engine
+# Rust (WASM用)
+rustc --version
+wasm-pack --version
+```
 
+### **データベース環境**
+```bash
+# PostgreSQL + Redis 起動
+cd modern-tetris
+docker-compose up -d
+
+# データベース接続確認
+psql -h localhost -U tetris_user -d tetris_dev
+redis-cli ping
+```
+
+### **Prisma設定**
+```bash
 # 依存関係インストール
-cargo build
+npm install @prisma/client
+npm install -D prisma
+
+# Prisma初期化
+npx prisma init
+
+# スキーマ生成
+npx prisma generate
+
+# マイグレーション実行
+npx prisma migrate dev --name init
+
+# Prisma Studio起動
+npx prisma studio
 ```
 
 ### **Next.js環境**
@@ -198,6 +401,49 @@ npm install
 
 # 開発サーバー起動
 npm run dev
+
+# テスト実行
+npm test
+```
+
+### **Rust WASM環境**
+```bash
+# Rustゲームエンジンビルド
+cd rust-game-engine
+./build.sh
+
+# WASMファイル確認
+ls -la public/wasm/
+```
+
+## 🔧 **環境変数設定**
+
+### **開発環境 (.env.local)**
+```bash
+# データベース
+DATABASE_URL="postgresql://tetris_user:tetris_password@localhost:5432/tetris_dev"
+REDIS_URL="redis://localhost:6379"
+
+# 認証
+JWT_SECRET="your-secret-key"
+NEXTAUTH_SECRET="your-nextauth-secret"
+
+# Clerk (Phase 5で使用)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="your-clerk-key"
+CLERK_SECRET_KEY="your-clerk-secret"
+```
+
+### **本番環境 (.env.production)**
+```bash
+# AWS RDS
+DATABASE_URL="postgresql://username:password@aws-rds-endpoint:5432/tetris_prod"
+
+# Upstash Redis
+REDIS_URL="redis://upstash-redis-endpoint:6379"
+
+# Clerk
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="your-clerk-key"
+CLERK_SECRET_KEY="your-clerk-secret"
 ```
 
 ### **統合テスト**
